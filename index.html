@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.7/aframe/build/aframe-ar.js"></script>
+
+  <title>Paul - WebAR Hiro Marker</title>
+    <script>
+      AFRAME.registerComponent('play-animation-on-marker', {
+        init: function () {
+          this.modelEl = this.el.querySelector('a-gltf-model');
+          this.mixers = [];
+          var self = this;
+          
+          this.el.addEventListener('markerFound', function () {
+            console.log('Marker found, playing animations');
+            if (self.modelEl && self.modelEl.getObject3D('mesh')) {
+              var mesh = self.modelEl.getObject3D('mesh');
+              mesh.traverse(function(node) {
+                if (node.animations && node.animations.length > 0) {
+                  var mixer = new THREE.AnimationMixer(node);
+                  self.mixers.push(mixer);
+                  
+                  node.animations.forEach(function(clip) {
+                    if (clip.name === '骨架动作.001' || clip.name === '骨架004动') {
+                      console.log('Playing animation:', clip.name);
+                      var action = mixer.clipAction(clip);
+                      action.setLoop(THREE.LoopRepeat, Infinity);
+                      action.play();
+                    }
+                  });
+                }
+              });
+            }
+          });
+
+          this.el.addEventListener('markerLost', function () {
+            console.log('Marker lost, stopping animations');
+            self.mixers.forEach(function(mixer) {
+              mixer.stopAllAction();
+            });
+            self.mixers = [];
+          });
+        },
+        tick: function (time, deltaTime) {
+          this.mixers.forEach(function(mixer) {
+            mixer.update(deltaTime / 1000);
+          });
+        }
+      });
+    </script>
+  </head>
+
+<body style="margin: 0; overflow: hidden;">
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    renderer="antialias: true; alpha: true;"
+  >
+
+    <a-assets>
+      <a-asset-item id="yasuo" src="/tests/assets/kache1_YaSuo.glb"></a-asset-item>
+    </a-assets>
+
+    <a-marker type="pattern" url="/tests/assets/pattern-marker.patt" play-animation-on-marker>
+      <a-gltf-model
+        src="#yasuo"
+        position="0 0 0"
+        rotation="0 270 90"
+        scale="0.1 0.1 0.1"
+        animation-mixer="clip: 骨架动作.001; loop: repeat; autoplay: false"
+        id="model"
+      ></a-gltf-model>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+
+  </a-scene>
+</body>
+</html>
